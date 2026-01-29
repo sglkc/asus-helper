@@ -14,7 +14,7 @@ from PyQt6.QtWidgets import (
     QSizePolicy,
 )
 from PyQt6.QtCore import Qt, pyqtSignal
-from PyQt6.QtGui import QCloseEvent
+from PyQt6.QtGui import QCloseEvent, QScreen
 
 from asus_helper.config import Config
 from asus_helper.bridges import (
@@ -120,9 +120,30 @@ class MainWindow(QMainWindow):
             Qt.WindowType.Window |
             Qt.WindowType.WindowStaysOnTopHint
         )
-        # Set a reasonable default size
-        self.setMinimumWidth(320)
-        self.resize(360, 500)
+        # Set a reasonable default size - wider to fit labels
+        self.setMinimumWidth(400)
+        self.resize(420, 550)
+    
+    def _position_bottom_right(self) -> None:
+        """Position the window at the bottom-right corner of the screen."""
+        screen = self.screen()
+        if screen is None:
+            return
+        
+        screen_geometry = screen.availableGeometry()
+        window_geometry = self.frameGeometry()
+        
+        # Calculate bottom-right position with some margin
+        margin = 10
+        x = screen_geometry.right() - window_geometry.width() - margin
+        y = screen_geometry.bottom() - window_geometry.height() - margin
+        
+        self.move(x, y)
+    
+    def showEvent(self, event) -> None:
+        """Handle show event to position window."""
+        super().showEvent(event)
+        self._position_bottom_right()
     
     def _setup_ui(self) -> None:
         """Build the UI."""
