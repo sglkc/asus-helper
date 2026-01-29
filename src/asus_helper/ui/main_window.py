@@ -56,7 +56,8 @@ class SliderWithValue(QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         
         self.label = QLabel(label)
-        self.label.setMinimumWidth(120)
+        # Let label size to its content, don't stretch
+        self.label.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Preferred)
         layout.addWidget(self.label)
         
         self.slider = QSlider(Qt.Orientation.Horizontal)
@@ -66,7 +67,8 @@ class SliderWithValue(QWidget):
         layout.addWidget(self.slider, stretch=1)
         
         self.value_label = QLabel()
-        self.value_label.setMinimumWidth(60)
+        # Fixed width for value to keep alignment consistent
+        self.value_label.setFixedWidth(70)
         self.value_label.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
         layout.addWidget(self.value_label)
         
