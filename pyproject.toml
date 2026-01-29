@@ -1,7 +1,7 @@
 [project]
 name = "asus-helper"
 version = "0.1.0"
-description = "Add your description here"
+description = "Power management tool for ASUS laptops on Linux"
 readme = "README.md"
 authors = [
     { name = "Seya", email = "31957516+sglkc@users.noreply.github.com" }
@@ -9,6 +9,8 @@ authors = [
 requires-python = ">=3.10"
 dependencies = [
     "pyqt6>=6.10.2",
+    "tomli>=2.0.0",
+    "tomli-w>=1.0.0",
 ]
 
 [project.scripts]

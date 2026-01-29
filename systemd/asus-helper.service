@@ -1,0 +1,16 @@
+[Unit]
+Description=ASUS Helper Power Management
+Documentation=https://github.com/sglkc/asus-helper
+After=graphical-session.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/env python -m asus_helper
+Restart=on-failure
+RestartSec=5
+
+# Environment for Wayland/X11
+Environment=QT_QPA_PLATFORM=wayland
+
+[Install]
+WantedBy=graphical-session.target
