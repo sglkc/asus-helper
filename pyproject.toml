@@ -1,0 +1,19 @@
+[project]
+name = "asus-helper"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "Seya", email = "31957516+sglkc@users.noreply.github.com" }
+]
+requires-python = ">=3.10"
+dependencies = [
+    "pyqt6>=6.10.2",
+]
+
+[project.scripts]
+asus-helper = "asus_helper:main"
+
+[build-system]
+requires = ["uv_build>=0.9.27,<0.10.0"]
+build-backend = "uv_build"
