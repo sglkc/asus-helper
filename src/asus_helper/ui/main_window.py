@@ -56,8 +56,7 @@ class SliderWithValue(QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         
         self.label = QLabel(label)
-        # Let label size to its content, don't stretch
-        self.label.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Preferred)
+        self.label.setMinimumWidth(100)
         layout.addWidget(self.label)
         
         self.slider = QSlider(Qt.Orientation.Horizontal)
@@ -67,7 +66,6 @@ class SliderWithValue(QWidget):
         layout.addWidget(self.slider, stretch=1)
         
         self.value_label = QLabel()
-        # Fixed width for value to keep alignment consistent
         self.value_label.setFixedWidth(70)
         self.value_label.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
         layout.addWidget(self.value_label)
@@ -142,6 +140,7 @@ class MainWindow(QMainWindow):
         
         self.move(x, y)
     
+    # type: ignore
     def showEvent(self, event) -> None:
         """Handle show event to position window."""
         super().showEvent(event)
@@ -156,13 +155,8 @@ class MainWindow(QMainWindow):
         layout.setSpacing(12)
         layout.setContentsMargins(16, 16, 16, 16)
         
-        # Header with status
-        header = QHBoxLayout()
-        header.addWidget(QLabel("<b>ASUS Helper</b>"))
-        header.addStretch()
-        self.status_label = QLabel()
-        header.addWidget(self.status_label)
-        layout.addLayout(header)
+        # Profile selector at top
+        layout.addWidget(self._create_profile_section())
         
         # Power Profile section (asusctl)
         if self.asusctl.is_available:
@@ -203,13 +197,10 @@ class MainWindow(QMainWindow):
             layout.addWidget(no_tools)
         
         layout.addStretch()
-        
-        # Profile selector at bottom
-        layout.addWidget(self._create_profile_section())
     
     def _create_power_profile_section(self) -> QGroupBox:
         """Create power profile selection section."""
-        group = QGroupBox("⚡ Power Profile")
+        group = QGroupBox("Power Profile")
         layout = QHBoxLayout(group)
         
         self.profile_buttons: dict[str, ModeButton] = {}
@@ -229,7 +220,7 @@ class MainWindow(QMainWindow):
     
     def _create_gpu_mode_section(self) -> QGroupBox:
         """Create GPU mode selection section."""
-        group = QGroupBox("🎮 GPU Mode")
+        group = QGroupBox("GPU Mode")
         layout = QHBoxLayout(group)
         
         self.gpu_buttons: dict[str, ModeButton] = {}
@@ -248,7 +239,7 @@ class MainWindow(QMainWindow):
     
     def _create_cpu_section(self) -> QGroupBox:
         """Create CPU power control section."""
-        group = QGroupBox("🔧 CPU (ryzenadj)")
+        group = QGroupBox("CPU (ryzenadj)")
         layout = QVBoxLayout(group)
         
         self.cpu_tdp_slider = SliderWithValue("Power Limit", 15, 80, "W")
@@ -263,7 +254,7 @@ class MainWindow(QMainWindow):
     
     def _create_nvidia_section(self) -> QGroupBox:
         """Create NVIDIA GPU control section."""
-        group = QGroupBox("🖥️ NVIDIA GPU")
+        group = QGroupBox("NVIDIA GPU")
         layout = QVBoxLayout(group)
         
         # GPU info
@@ -287,7 +278,7 @@ class MainWindow(QMainWindow):
     
     def _create_keyboard_section(self) -> QGroupBox:
         """Create keyboard backlight section."""
-        group = QGroupBox("⌨️ Keyboard")
+        group = QGroupBox("Keyboard")
         layout = QHBoxLayout(group)
         
         layout.addWidget(QLabel("Brightness"))
@@ -407,8 +398,8 @@ class MainWindow(QMainWindow):
         self.nvidia_smi.set_temp_limit(value)
     
     def _on_kbd_brightness_changed(self, value: int) -> None:
-        \"\"\"Handle keyboard brightness change.\"\"\"
-        led_levels = [\"off\", \"low\", \"med\", \"high\"]
+        """Handle keyboard brightness change."""
+        led_levels = ["off", "low", "med", "high"]
         if 0 <= value < len(led_levels):
             level = led_levels[value]
             self.kbd_brightness_label.setText(level)
@@ -460,6 +451,7 @@ class MainWindow(QMainWindow):
                 self.gpu_temp_slider.setValue(profile["gpu_temp_limit"])
                 self.nvidia_smi.set_temp_limit(profile["gpu_temp_limit"])
     
+    # type: ignore
     def closeEvent(self, event: QCloseEvent) -> None:
         """Handle window close - hide to tray instead of quitting."""
         event.ignore()
