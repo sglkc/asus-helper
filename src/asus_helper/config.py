@@ -1,11 +1,14 @@
 """Configuration management using TOML."""
 
-import os
 from pathlib import Path
 from typing import Any
 
 import tomli
 import tomli_w
+
+from asus_helper.logging import get_logger
+
+log = get_logger("config")
 
 
 class Config:
@@ -73,10 +76,12 @@ class Config:
             try:
                 with open(self.config_file, "rb") as f:
                     self._data = tomli.load(f)
+                log.debug("Loaded config from %s", self.config_file)
             except (tomli.TOMLDecodeError, OSError) as e:
-                print(f"Warning: Could not load config: {e}. Using defaults.")
+                log.warning("Could not load config: %s. Using defaults.", e)
                 self._data = self._deep_copy(self.DEFAULTS)
         else:
+            log.info("Config file not found, creating with defaults: %s", self.config_file)
             self._data = self._deep_copy(self.DEFAULTS)
             self._save()
     
@@ -85,6 +90,7 @@ class Config:
         self.config_dir.mkdir(parents=True, exist_ok=True)
         with open(self.config_file, "wb") as f:
             tomli_w.dump(self._data, f)
+        log.debug("Saved config to %s", self.config_file)
     
     def _deep_copy(self, d: dict) -> dict:
         """Create a deep copy of a nested dict."""

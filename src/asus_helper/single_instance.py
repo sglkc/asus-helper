@@ -6,6 +6,10 @@ import sys
 import signal
 from pathlib import Path
 
+from asus_helper.logging import get_logger
+
+log = get_logger("single_instance")
+
 
 class SingleInstance:
     """Ensures only one instance of the app runs at a time.
@@ -36,8 +40,10 @@ class SingleInstance:
             # Write our PID to the lock file
             os.ftruncate(self._lock_fd, 0)
             os.write(self._lock_fd, str(os.getpid()).encode())
+            log.debug("Lock acquired, PID %d written to %s", os.getpid(), self.LOCK_FILE)
             return True
-        except (OSError, IOError):
+        except (OSError, IOError) as e:
+            log.debug("Could not acquire lock: %s", e)
             # Lock is held by another process
             if self._lock_fd is not None:
                 os.close(self._lock_fd)
@@ -54,8 +60,10 @@ class SingleInstance:
             with open(self.LOCK_FILE, "r") as f:
                 pid = int(f.read().strip())
             os.kill(pid, signal.SIGUSR1)
+            log.info("Sent SIGUSR1 to existing instance (PID %d)", pid)
             return True
-        except (FileNotFoundError, ValueError, ProcessLookupError, PermissionError):
+        except (FileNotFoundError, ValueError, ProcessLookupError, PermissionError) as e:
+            log.warning("Could not signal existing instance: %s", e)
             return False
     
     def release(self) -> None:
@@ -65,8 +73,9 @@ class SingleInstance:
                 fcntl.flock(self._lock_fd, fcntl.LOCK_UN)
                 os.close(self._lock_fd)
                 self.LOCK_FILE.unlink(missing_ok=True)
-            except OSError:
-                pass
+                log.debug("Lock released")
+            except OSError as e:
+                log.warning("Error releasing lock: %s", e)
             self._lock_fd = None
 
 
@@ -82,10 +91,11 @@ def ensure_single_instance() -> SingleInstance:
     
     if not instance.try_acquire():
         # Another instance is running - signal it and exit
+        log.info("Another instance is running")
         if instance.signal_existing_instance():
-            print("Another instance is running. Signaled it to show.", file=sys.stderr)
+            log.info("Signaled existing instance to show window")
         else:
-            print("Another instance may be running. Could not signal it.", file=sys.stderr)
+            log.warning("Could not signal existing instance")
         sys.exit(0)
     
     return instance
