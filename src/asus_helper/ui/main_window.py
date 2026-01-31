@@ -214,8 +214,13 @@ class MainWindow(QMainWindow):
         
         self.profile_buttons: dict[str, ModeButton] = {}
         
-        for profile in ["quiet", "balanced", "performance"]:
-            btn = ModeButton(profile.capitalize())
+        # Use actual asusctl profile names
+        for profile, label in [
+            ("LowPower", "Silent"),
+            ("Balanced", "Balanced"),
+            ("Performance", "Turbo"),
+        ]:
+            btn = ModeButton(label)
             btn.clicked.connect(lambda checked, p=profile: self._on_power_profile_clicked(p))
             self.profile_buttons[profile] = btn
             layout.addWidget(btn)
@@ -287,13 +292,15 @@ class MainWindow(QMainWindow):
         
         layout.addWidget(QLabel("Brightness"))
         
+        # LED levels: off, low, med, high (0-3)
         self.kbd_brightness_slider = QSlider(Qt.Orientation.Horizontal)
         self.kbd_brightness_slider.setMinimum(0)
         self.kbd_brightness_slider.setMaximum(3)
         self.kbd_brightness_slider.valueChanged.connect(self._on_kbd_brightness_changed)
         layout.addWidget(self.kbd_brightness_slider, stretch=1)
         
-        self.kbd_brightness_label = QLabel("2")
+        self.kbd_brightness_label = QLabel("off")
+        self.kbd_brightness_label.setMinimumWidth(40)
         layout.addWidget(self.kbd_brightness_label)
         
         return group
@@ -319,16 +326,19 @@ class MainWindow(QMainWindow):
     
     def _load_current_state(self) -> None:
         """Load current state from hardware."""
-        # Load power profile
+        # Load power profile and keyboard state
         if self.asusctl.is_available:
             profile = self.asusctl.get_power_profile()
             if profile and profile in self.profile_buttons:
                 self._set_active_button(self.profile_buttons, profile)
             
-            state = self.asusctl.get_current_state()
-            if state.get("keyboard_brightness") is not None:
-                self.kbd_brightness_slider.setValue(state["keyboard_brightness"])
-                self.kbd_brightness_label.setText(str(state["keyboard_brightness"]))
+            # LED brightness is a string: off, low, med, high
+            led_level = self.asusctl.get_keyboard_brightness()
+            if led_level:
+                led_levels = ["off", "low", "med", "high"]
+                if led_level in led_levels:
+                    self.kbd_brightness_slider.setValue(led_levels.index(led_level))
+                    self.kbd_brightness_label.setText(led_level)
         
         # Load GPU mode
         if self.supergfxctl.is_available:
@@ -397,9 +407,12 @@ class MainWindow(QMainWindow):
         self.nvidia_smi.set_temp_limit(value)
     
     def _on_kbd_brightness_changed(self, value: int) -> None:
-        """Handle keyboard brightness change."""
-        self.kbd_brightness_label.setText(str(value))
-        self.asusctl.set_keyboard_brightness(value)
+        \"\"\"Handle keyboard brightness change.\"\"\"
+        led_levels = [\"off\", \"low\", \"med\", \"high\"]
+        if 0 <= value < len(led_levels):
+            level = led_levels[value]
+            self.kbd_brightness_label.setText(level)
+            self.asusctl.set_keyboard_brightness(level)
     
     def _on_profile_selected(self, name: str) -> None:
         """Handle profile selection from combo box."""
