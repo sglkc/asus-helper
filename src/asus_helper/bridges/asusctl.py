@@ -262,6 +262,27 @@ class AsusctlBridge(Bridge):
         except Exception:
             return False
     
+    def battery_oneshot(self, percent: int = 100) -> bool:
+        """Enable one-shot full charge mode.
+        
+        This allows charging to the specified percent once,
+        then returns to the normal charge limit.
+        
+        Args:
+            percent: Target charge percentage (default 100).
+        
+        Returns:
+            True if successful.
+        """
+        if not self.is_available:
+            return False
+        
+        try:
+            result = self.run("battery", "oneshot", str(percent), check=False)
+            return result.returncode == 0
+        except Exception:
+            return False
+    
     # Armoury Methods
     
     def get_armoury_attribute(self, name: str) -> dict[str, Any] | None:

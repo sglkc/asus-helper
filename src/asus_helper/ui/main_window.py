@@ -178,6 +178,10 @@ class MainWindow(QMainWindow):
         if self.asusctl.is_available:
             layout.addWidget(self._create_keyboard_section())
         
+        # Battery section (asusctl)
+        if self.asusctl.is_available:
+            layout.addWidget(self._create_battery_section())
+        
         # Show warning if no bridges available
         if not any([
             self.asusctl.is_available,
@@ -296,6 +300,36 @@ class MainWindow(QMainWindow):
         
         return group
     
+    def _create_battery_section(self) -> QGroupBox:
+        """Create battery charge limit section."""
+        group = QGroupBox("🔋 Battery")
+        layout = QVBoxLayout(group)
+        
+        # Charge limit slider
+        limit_row = QHBoxLayout()
+        limit_row.addWidget(QLabel("Charge Limit"))
+        
+        self.battery_limit_slider = QSlider(Qt.Orientation.Horizontal)
+        self.battery_limit_slider.setMinimum(20)
+        self.battery_limit_slider.setMaximum(100)
+        self.battery_limit_slider.setSingleStep(5)
+        self.battery_limit_slider.valueChanged.connect(self._on_battery_limit_changed)
+        limit_row.addWidget(self.battery_limit_slider, stretch=1)
+        
+        self.battery_limit_label = QLabel("60%")
+        self.battery_limit_label.setMinimumWidth(45)
+        limit_row.addWidget(self.battery_limit_label)
+        
+        layout.addLayout(limit_row)
+        
+        # Oneshot button
+        self.battery_oneshot_btn = QPushButton("⚡ Full Charge (One-Shot)")
+        self.battery_oneshot_btn.setToolTip("Charge to 100% once, then return to normal limit")
+        self.battery_oneshot_btn.clicked.connect(self._on_battery_oneshot_clicked)
+        layout.addWidget(self.battery_oneshot_btn)
+        
+        return group
+    
     def _create_profile_section(self) -> QWidget:
         """Create profile selector section."""
         widget = QWidget()
@@ -330,6 +364,12 @@ class MainWindow(QMainWindow):
                 if led_level in led_levels:
                     self.kbd_brightness_slider.setValue(led_levels.index(led_level))
                     self.kbd_brightness_label.setText(led_level)
+            
+            # Battery charge limit
+            battery_limit = self.asusctl.get_battery_limit()
+            if battery_limit is not None:
+                self.battery_limit_slider.setValue(battery_limit)
+                self.battery_limit_label.setText(f"{battery_limit}%")
         
         # Load GPU mode
         if self.supergfxctl.is_available:
@@ -404,6 +444,18 @@ class MainWindow(QMainWindow):
             level = led_levels[value]
             self.kbd_brightness_label.setText(level)
             self.asusctl.set_keyboard_brightness(level)
+    
+    def _on_battery_limit_changed(self, value: int) -> None:
+        """Handle battery charge limit change."""
+        self.battery_limit_label.setText(f"{value}%")
+        self.asusctl.set_battery_limit(value)
+    
+    def _on_battery_oneshot_clicked(self) -> None:
+        """Handle battery oneshot button click."""
+        success = self.asusctl.battery_oneshot(100)
+        if success:
+            self.battery_oneshot_btn.setText("✓ One-Shot Enabled")
+            self.battery_oneshot_btn.setEnabled(False)
     
     def _on_profile_selected(self, name: str) -> None:
         """Handle profile selection from combo box."""
