@@ -139,8 +139,8 @@ class Config:
     
     def get_current_profile(self) -> dict[str, Any]:
         """Get the currently active profile settings."""
-        profile_name = self.get("general", "current_profile", default="balanced")
-        return self.get("profiles", profile_name, default=self.DEFAULTS["profiles"]["balanced"])
+        profile_name = self.get("general", "current_profile", default="Balanced")
+        return self.get("profiles", profile_name, default=self.DEFAULTS["profiles"]["Balanced"])
     
     def set_current_profile(self, name: str) -> None:
         """Set the active profile by name."""
