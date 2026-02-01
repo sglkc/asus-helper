@@ -28,7 +28,9 @@ class Config:
         "profiles": {
             "LowPower": {
                 "gpu_mode": "Integrated",
-                "cpu_tdp": 25,
+                "cpu_sustained": 15,
+                "cpu_short": 20,
+                "cpu_fast": 25,
                 "cpu_temp_limit": 75,
                 "gpu_clock_min": 300,
                 "gpu_clock_max": 900,
@@ -38,7 +40,9 @@ class Config:
             },
             "Balanced": {
                 "gpu_mode": "Hybrid",
-                "cpu_tdp": 45,
+                "cpu_sustained": 25,
+                "cpu_short": 35,
+                "cpu_fast": 45,
                 "cpu_temp_limit": 85,
                 "gpu_clock_min": 300,
                 "gpu_clock_max": 1500,
@@ -48,7 +52,9 @@ class Config:
             },
             "Performance": {
                 "gpu_mode": "Hybrid",
-                "cpu_tdp": 65,
+                "cpu_sustained": 35,
+                "cpu_short": 45,
+                "cpu_fast": 65,
                 "cpu_temp_limit": 95,
                 "gpu_clock_min": 300,
                 "gpu_clock_max": 2100,

@@ -115,6 +115,36 @@ class RyzenadjBridge(Bridge):
         except Exception:
             return False
     
+    def set_sustained_limit(self, watts: int) -> bool:
+        """Set sustained power limit (STAPM)."""
+        if not self.is_available:
+            return False
+        try:
+            self.run(f"--stapm-limit={watts * 1000}")
+            return True
+        except Exception:
+            return False
+    
+    def set_short_limit(self, watts: int) -> bool:
+        """Set short boost power limit (slow limit)."""
+        if not self.is_available:
+            return False
+        try:
+            self.run(f"--slow-limit={watts * 1000}")
+            return True
+        except Exception:
+            return False
+    
+    def set_fast_limit(self, watts: int) -> bool:
+        """Set fast boost power limit."""
+        if not self.is_available:
+            return False
+        try:
+            self.run(f"--fast-limit={watts * 1000}")
+            return True
+        except Exception:
+            return False
+    
     def set_temp_limit(self, celsius: int) -> bool:
         """Set CPU temperature limit.
         
@@ -132,3 +162,4 @@ class RyzenadjBridge(Bridge):
             return True
         except Exception:
             return False
+

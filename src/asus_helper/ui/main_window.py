@@ -250,13 +250,32 @@ class MainWindow(QMainWindow):
         
         # Get limits from asusctl armoury (min lowered by 5W)
         limits = self.asusctl.get_cpu_power_limits()
-        min_power = limits.get("min", 15)
-        max_power = limits.get("max", 65)
         
-        self.cpu_tdp_slider = SliderWithValue("Power Limit", min_power, max_power, "W")
-        self.cpu_tdp_slider.valueChanged.connect(self._on_cpu_tdp_changed)
-        layout.addWidget(self.cpu_tdp_slider)
+        # Sustained power limit (STAPM)
+        sustained = limits.get("sustained", {"min": 10, "max": 35})
+        self.cpu_sustained_slider = SliderWithValue(
+            "Sustained", sustained["min"], sustained["max"], "W"
+        )
+        self.cpu_sustained_slider.valueChanged.connect(self._on_cpu_sustained_changed)
+        layout.addWidget(self.cpu_sustained_slider)
         
+        # Short boost power limit
+        short = limits.get("short", {"min": 20, "max": 45})
+        self.cpu_short_slider = SliderWithValue(
+            "Short Boost", short["min"], short["max"], "W"
+        )
+        self.cpu_short_slider.valueChanged.connect(self._on_cpu_short_changed)
+        layout.addWidget(self.cpu_short_slider)
+        
+        # Fast boost power limit
+        fast = limits.get("fast", {"min": 30, "max": 65})
+        self.cpu_fast_slider = SliderWithValue(
+            "Fast Boost", fast["min"], fast["max"], "W"
+        )
+        self.cpu_fast_slider.valueChanged.connect(self._on_cpu_fast_changed)
+        layout.addWidget(self.cpu_fast_slider)
+        
+        # Temperature limit
         self.cpu_temp_slider = SliderWithValue("Temp Limit", 60, 100, "°C")
         self.cpu_temp_slider.valueChanged.connect(self._on_cpu_temp_changed)
         layout.addWidget(self.cpu_temp_slider)
@@ -410,10 +429,20 @@ class MainWindow(QMainWindow):
         self.supergfxctl.set_gpu_mode(mode)
         self._save_to_current_profile("gpu_mode", mode)
     
-    def _on_cpu_tdp_changed(self, value: int) -> None:
-        """Handle CPU TDP slider change."""
-        self.ryzenadj.set_power_limit(value)
-        self._save_to_current_profile("cpu_tdp", value)
+    def _on_cpu_sustained_changed(self, value: int) -> None:
+        """Handle CPU sustained power limit change."""
+        self.ryzenadj.set_sustained_limit(value)
+        self._save_to_current_profile("cpu_sustained", value)
+    
+    def _on_cpu_short_changed(self, value: int) -> None:
+        """Handle CPU short boost power limit change."""
+        self.ryzenadj.set_short_limit(value)
+        self._save_to_current_profile("cpu_short", value)
+    
+    def _on_cpu_fast_changed(self, value: int) -> None:
+        """Handle CPU fast boost power limit change."""
+        self.ryzenadj.set_fast_limit(value)
+        self._save_to_current_profile("cpu_fast", value)
     
     def _on_cpu_temp_changed(self, value: int) -> None:
         """Handle CPU temp slider change."""
@@ -474,9 +503,15 @@ class MainWindow(QMainWindow):
         
         # Apply ryzenadj settings
         if self.ryzenadj.is_available:
-            if "cpu_tdp" in profile_data:
-                self.cpu_tdp_slider.setValue(profile_data["cpu_tdp"])
-                self.ryzenadj.set_power_limit(profile_data["cpu_tdp"])
+            if "cpu_sustained" in profile_data:
+                self.cpu_sustained_slider.setValue(profile_data["cpu_sustained"])
+                self.ryzenadj.set_sustained_limit(profile_data["cpu_sustained"])
+            if "cpu_short" in profile_data:
+                self.cpu_short_slider.setValue(profile_data["cpu_short"])
+                self.ryzenadj.set_short_limit(profile_data["cpu_short"])
+            if "cpu_fast" in profile_data:
+                self.cpu_fast_slider.setValue(profile_data["cpu_fast"])
+                self.ryzenadj.set_fast_limit(profile_data["cpu_fast"])
             if "cpu_temp_limit" in profile_data:
                 self.cpu_temp_slider.setValue(profile_data["cpu_temp_limit"])
                 self.ryzenadj.set_temp_limit(profile_data["cpu_temp_limit"])

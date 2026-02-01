@@ -316,31 +316,35 @@ class AsusctlBridge(Bridge):
         except Exception:
             return False
     
-    def get_cpu_power_limits(self) -> dict[str, int]:
+    def get_cpu_power_limits(self) -> dict[str, dict[str, int]]:
         """Get CPU power limit ranges from armoury attributes.
         
-        Uses ppt_pl1_spl (sustained), ppt_pl2_sppt (short), ppt_pl3_fppt (fast)
-        to determine the valid ranges for CPU TDP.
-        
-        Returns:
-            Dict with min, max, current for the primary (sustained) limit,
-            with min lowered by 5W for ryzenadj flexibility.
+        Returns dict with keys: sustained, short, fast
+        Each contains: min, max, current (with min lowered by 5W)
         """
-        result = {
-            "min": 15,  # Fallback defaults
-            "max": 65,
-            "current": 45,
+        # Fallback defaults based on typical ASUS laptop ranges
+        defaults = {
+            "sustained": {"min": 10, "max": 35, "current": 25},  # ppt_pl1_spl
+            "short": {"min": 20, "max": 45, "current": 35},      # ppt_pl2_sppt
+            "fast": {"min": 30, "max": 65, "current": 45},       # ppt_pl3_fppt
         }
         
-        # Get ppt_pl1_spl (sustained power limit) for the primary range
-        attr = self.get_armoury_attribute("ppt_pl1_spl")
-        if attr:
-            if "min" in attr:
-                result["min"] = max(5, attr["min"] - 5)  # Lower by 5W, min 5W
-            if "max" in attr:
-                result["max"] = attr["max"]
-            if "current" in attr:
-                result["current"] = attr["current"]
+        attr_map = {
+            "sustained": "ppt_pl1_spl",
+            "short": "ppt_pl2_sppt",
+            "fast": "ppt_pl3_fppt",
+        }
+        
+        result = {}
+        for key, attr_name in attr_map.items():
+            attr = self.get_armoury_attribute(attr_name)
+            if attr and "min" in attr and "max" in attr:
+                result[key] = {
+                    "min": max(5, attr["min"] - 5),  # Lower by 5W, min 5W
+                    "max": attr["max"],
+                    "current": attr.get("current", defaults[key]["current"]),
+                }
+            else:
+                result[key] = defaults[key]
         
         return result
-
