@@ -11,7 +11,7 @@ from PyQt6.QtWidgets import (
     QSlider,
     QSizePolicy,
 )
-from PyQt6.QtCore import Qt, pyqtSignal
+from PyQt6.QtCore import Qt, pyqtSignal, QTimer
 from PyQt6.QtGui import QCloseEvent, QScreen
 
 from asus_helper.config import Config
@@ -84,6 +84,51 @@ class SliderWithValue(QWidget):
         self.slider.setValue(value)
 
 
+class Debouncer:
+    """Debounce function calls using QTimer.
+    
+    Delays execution until a period of inactivity, avoiding spam
+    when sliders are being dragged.
+    """
+    
+    def __init__(self, delay_ms: int = 300) -> None:
+        """Initialize debouncer.
+        
+        Args:
+            delay_ms: Delay in milliseconds before executing.
+        """
+        self.delay_ms = delay_ms
+        self._timers: dict[str, QTimer] = {}
+        self._pending: dict[str, tuple] = {}
+    
+    def call(self, key: str, func: callable, *args, **kwargs) -> None:
+        """Schedule a debounced function call.
+        
+        Args:
+            key: Unique key to identify this debounced action.
+            func: Function to call after debounce period.
+            *args, **kwargs: Arguments to pass to function.
+        """
+        # Store pending call
+        self._pending[key] = (func, args, kwargs)
+        
+        # Create or restart timer
+        if key not in self._timers:
+            timer = QTimer()
+            timer.setSingleShot(True)
+            timer.timeout.connect(lambda: self._execute(key))
+            self._timers[key] = timer
+        
+        # Reset timer
+        self._timers[key].stop()
+        self._timers[key].start(self.delay_ms)
+    
+    def _execute(self, key: str) -> None:
+        """Execute the pending call for given key."""
+        if key in self._pending:
+            func, args, kwargs = self._pending.pop(key)
+            func(*args, **kwargs)
+
 class MainWindow(QMainWindow):
     """Main application window - popup style."""
     
@@ -106,6 +151,9 @@ class MainWindow(QMainWindow):
         self.supergfxctl = supergfxctl
         self.ryzenadj = ryzenadj
         self.nvidia_smi = nvidia_smi
+        
+        # Debouncer for slider commands (300ms delay)
+        self._debouncer = Debouncer(delay_ms=300)
         
         self._setup_window()
         self._setup_ui()
@@ -431,22 +479,22 @@ class MainWindow(QMainWindow):
     
     def _on_cpu_sustained_changed(self, value: int) -> None:
         """Handle CPU sustained power limit change."""
-        self.ryzenadj.set_sustained_limit(value)
+        self._debouncer.call("cpu_sustained", self.ryzenadj.set_sustained_limit, value)
         self._save_to_current_profile("cpu_sustained", value)
     
     def _on_cpu_short_changed(self, value: int) -> None:
         """Handle CPU short boost power limit change."""
-        self.ryzenadj.set_short_limit(value)
+        self._debouncer.call("cpu_short", self.ryzenadj.set_short_limit, value)
         self._save_to_current_profile("cpu_short", value)
     
     def _on_cpu_fast_changed(self, value: int) -> None:
         """Handle CPU fast boost power limit change."""
-        self.ryzenadj.set_fast_limit(value)
+        self._debouncer.call("cpu_fast", self.ryzenadj.set_fast_limit, value)
         self._save_to_current_profile("cpu_fast", value)
     
     def _on_cpu_temp_changed(self, value: int) -> None:
         """Handle CPU temp slider change."""
-        self.ryzenadj.set_temp_limit(value)
+        self._debouncer.call("cpu_temp", self.ryzenadj.set_temp_limit, value)
         self._save_to_current_profile("cpu_temp_limit", value)
     
     def _on_gpu_clock_changed(self, _: int) -> None:
@@ -457,13 +505,13 @@ class MainWindow(QMainWindow):
         if min_clock > max_clock:
             max_clock = min_clock
             self.gpu_clock_max_slider.setValue(max_clock)
-        self.nvidia_smi.set_clock_limits(min_clock, max_clock)
+        self._debouncer.call("gpu_clock", self.nvidia_smi.set_clock_limits, min_clock, max_clock)
         self._save_to_current_profile("gpu_clock_min", min_clock)
         self._save_to_current_profile("gpu_clock_max", max_clock)
     
     def _on_gpu_temp_changed(self, value: int) -> None:
         """Handle GPU temp slider change."""
-        self.nvidia_smi.set_temp_limit(value)
+        self._debouncer.call("gpu_temp", self.nvidia_smi.set_temp_limit, value)
         self._save_to_current_profile("gpu_temp_limit", value)
     
     def _on_kbd_brightness_changed(self, value: int) -> None:
@@ -472,13 +520,13 @@ class MainWindow(QMainWindow):
         if 0 <= value < len(led_levels):
             level = led_levels[value]
             self.kbd_brightness_label.setText(level)
-            self.asusctl.set_keyboard_brightness(level)
+            self._debouncer.call("kbd_brightness", self.asusctl.set_keyboard_brightness, level)
             self._save_to_current_profile("keyboard_brightness", level)
     
     def _on_battery_limit_changed(self, value: int) -> None:
         """Handle battery charge limit change."""
         self.battery_limit_label.setText(f"{value}%")
-        self.asusctl.set_battery_limit(value)
+        self._debouncer.call("battery_limit", self.asusctl.set_battery_limit, value)
         self._save_to_current_profile("battery_limit", value)
     
     def _on_battery_oneshot_clicked(self) -> None:
