@@ -18,28 +18,15 @@ class Config:
     DEFAULT_CONFIG_FILE = "config.toml"
     
     # Default configuration values
-    # Uses actual asusctl constants:
-    # - power_profile: LowPower, Balanced, Performance
-    # - gpu_mode: Integrated, Hybrid, Dedicated
-    # - keyboard brightness: off, low, med, high
+    # Profile names match asusctl power profiles: LowPower, Balanced, Performance
+    # Displayed as: Silent, Balanced, Turbo
     DEFAULTS: dict[str, Any] = {
         "general": {
             "start_on_boot": False,
-            "current_profile": "balanced",
+            "current_profile": "Balanced",
         },
         "profiles": {
-            "balanced": {
-                "power_profile": "Balanced",
-                "gpu_mode": "Hybrid",
-                "cpu_tdp": 45,
-                "cpu_temp_limit": 85,
-                "gpu_clock_min": 300,
-                "gpu_clock_max": 1500,
-                "gpu_temp_limit": 87,
-                "battery_limit": 80,
-            },
-            "silent": {
-                "power_profile": "LowPower",
+            "LowPower": {
                 "gpu_mode": "Integrated",
                 "cpu_tdp": 25,
                 "cpu_temp_limit": 75,
@@ -47,9 +34,19 @@ class Config:
                 "gpu_clock_max": 900,
                 "gpu_temp_limit": 80,
                 "battery_limit": 60,
+                "keyboard_brightness": "off",
             },
-            "performance": {
-                "power_profile": "Performance",
+            "Balanced": {
+                "gpu_mode": "Hybrid",
+                "cpu_tdp": 45,
+                "cpu_temp_limit": 85,
+                "gpu_clock_min": 300,
+                "gpu_clock_max": 1500,
+                "gpu_temp_limit": 87,
+                "battery_limit": 80,
+                "keyboard_brightness": "low",
+            },
+            "Performance": {
                 "gpu_mode": "Hybrid",
                 "cpu_tdp": 65,
                 "cpu_temp_limit": 95,
@@ -57,12 +54,8 @@ class Config:
                 "gpu_clock_max": 2100,
                 "gpu_temp_limit": 90,
                 "battery_limit": 100,
+                "keyboard_brightness": "med",
             },
-        },
-        "keyboard": {
-            "brightness": "low",
-            "color": "#ff0000",
-            "mode": "static",
         },
     }
     

@@ -92,6 +92,9 @@ class Application:
         # Handle SIGUSR1 for single-instance activation
         self._setup_signal_handler()
         
+        # Apply last-used profile on startup
+        self._apply_startup_profile()
+        
         log.info("Application initialized")
     
     def _log_bridge_status(self) -> None:
@@ -106,6 +109,22 @@ class Application:
         for name, bridge in bridges:
             status = "available" if bridge.is_available else "not found"
             log.info("Bridge %s: %s", name, status)
+    
+    def _apply_startup_profile(self) -> None:
+        """Apply the last-used profile settings on startup."""
+        profile_name = self.config.get("general", "current_profile", default="Balanced")
+        log.info("Applying startup profile: %s", profile_name)
+        
+        # Set asusctl power profile
+        if self.asusctl.is_available:
+            self.asusctl.set_power_profile(profile_name)
+        
+        # Apply all profile settings via window (updates UI too)
+        self.window._apply_profile(profile_name)
+        
+        # Highlight the active profile button
+        if profile_name in self.window.profile_buttons:
+            self.window._set_active_button(self.window.profile_buttons, profile_name)
     
     def _setup_signal_handler(self) -> None:
         """Set up handler for SIGUSR1 (show window from another instance)."""

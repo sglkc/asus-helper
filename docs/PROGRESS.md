@@ -30,10 +30,17 @@
 - [x] Install script with KWin rules (`scripts/install.sh`)
 - [x] README with usage instructions
 
+### Phase 4: Profile System ✅
+- [x] Simplified to 3 profiles (LowPower/Balanced/Performance)
+- [x] Power profile buttons load & apply all settings
+- [x] Auto-save slider changes to current profile
+- [x] Apply last-used profile on startup
+- [x] Battery charge limit UI with oneshot mode
+- [x] Auto-configure KWin rules on launch
+
 ## In Progress
 
-### Fixes & Polish
-- [ ] Fix escaped quotes in main_window.py (user edit artifact)
+### Testing
 - [ ] Test all asusctl commands on real hardware
 - [ ] Verify KWin rules work correctly
 
@@ -47,3 +54,6 @@
 | `4997d88` | Comprehensive logging infrastructure |
 | `31a5df0` | Rewrite asusctl bridge with correct CLI commands |
 | `4fc3daa` | Update UI with correct asusctl profile names |
+| `b21365c` | Auto-configure KWin rules on app launch |
+| `2cb7be8` | Update config defaults to use asusctl constants |
+

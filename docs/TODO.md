@@ -9,16 +9,16 @@
 
 ### Missing Features
 - [x] Battery charge limit UI control
-- [ ] Apply profile on startup (from config)
-- [ ] Save slider values to config on change
+- [x] Apply profile on startup (from config)
+- [x] Save slider values to config on change
 
 ## Medium Priority
 
 ### Profile System
-- [ ] Save current settings as new profile
-- [ ] Delete profile
-- [ ] Rename profile
-- [ ] Apply profile applies all settings at once
+- [x] Simplified to 3 profiles: LowPower (Silent), Balanced, Performance (Turbo)
+- [x] Click profile button applies all settings at once
+- [x] Auto-save slider changes to current profile
+- [x] Apply last-used profile on startup
 
 ### Armoury Controls
 - [ ] ppt_pl1_spl (CPU sustained power)

@@ -9,8 +9,6 @@ from PyQt6.QtWidgets import (
     QGroupBox,
     QPushButton,
     QSlider,
-    QComboBox,
-    QFrame,
     QSizePolicy,
 )
 from PyQt6.QtCore import Qt, pyqtSignal
@@ -155,10 +153,7 @@ class MainWindow(QMainWindow):
         layout.setSpacing(12)
         layout.setContentsMargins(16, 16, 16, 16)
         
-        # Profile selector at top
-        layout.addWidget(self._create_profile_section())
-        
-        # Power Profile section (asusctl)
+        # Power Profile section (asusctl) - also serves as profile selector
         if self.asusctl.is_available:
             layout.addWidget(self._create_power_profile_section())
         
@@ -203,8 +198,11 @@ class MainWindow(QMainWindow):
         layout.addStretch()
     
     def _create_power_profile_section(self) -> QGroupBox:
-        """Create power profile selection section."""
-        group = QGroupBox("Power Profile")
+        """Create power profile selection section.
+        
+        Also serves as the main profile selector - clicking applies all settings.
+        """
+        group = QGroupBox("⚡ Profile")
         layout = QHBoxLayout(group)
         
         self.profile_buttons: dict[str, ModeButton] = {}
@@ -330,24 +328,9 @@ class MainWindow(QMainWindow):
         
         return group
     
-    def _create_profile_section(self) -> QWidget:
-        """Create profile selector section."""
-        widget = QWidget()
-        layout = QHBoxLayout(widget)
-        layout.setContentsMargins(0, 0, 0, 0)
-        
-        layout.addWidget(QLabel("Profile:"))
-        
-        self.profile_combo = QComboBox()
-        self.profile_combo.addItems(self.config.get_profile_names())
-        self.profile_combo.currentTextChanged.connect(self._on_profile_selected)
-        layout.addWidget(self.profile_combo, stretch=1)
-        
-        apply_btn = QPushButton("Apply")
-        apply_btn.clicked.connect(self._apply_current_profile)
-        layout.addWidget(apply_btn)
-        
-        return widget
+    def _get_current_profile_name(self) -> str:
+        """Get the current profile name."""
+        return self.config.get("general", "current_profile", default="Balanced")
     
     def _load_current_state(self) -> None:
         """Load current state from hardware."""
@@ -393,12 +376,6 @@ class MainWindow(QMainWindow):
             self.gpu_clock_min_slider.setValue(profile.get("gpu_clock_min", 300))
             self.gpu_clock_max_slider.setValue(profile.get("gpu_clock_max", 1500))
             self.gpu_temp_slider.setValue(profile.get("gpu_temp_limit", 87))
-        
-        # Set current profile in combo
-        current = self.config.get("general", "current_profile", default="balanced")
-        idx = self.profile_combo.findText(current)
-        if idx >= 0:
-            self.profile_combo.setCurrentIndex(idx)
     
     def _set_active_button(self, buttons: dict[str, ModeButton], active_key: str) -> None:
         """Set one button as active (checked) in a group."""
@@ -406,22 +383,33 @@ class MainWindow(QMainWindow):
             btn.setChecked(key == active_key)
     
     def _on_power_profile_clicked(self, profile: str) -> None:
-        """Handle power profile button click."""
+        """Handle power profile button click - loads and applies full profile."""
         self._set_active_button(self.profile_buttons, profile)
+        
+        # Set as current profile
+        self.config.set_current_profile(profile)
+        
+        # Apply asusctl power profile
         self.asusctl.set_power_profile(profile)
+        
+        # Load and apply all profile settings
+        self._apply_profile(profile)
     
     def _on_gpu_mode_clicked(self, mode: str) -> None:
         """Handle GPU mode button click."""
         self._set_active_button(self.gpu_buttons, mode)
         self.supergfxctl.set_gpu_mode(mode)
+        self._save_to_current_profile("gpu_mode", mode)
     
     def _on_cpu_tdp_changed(self, value: int) -> None:
         """Handle CPU TDP slider change."""
         self.ryzenadj.set_power_limit(value)
+        self._save_to_current_profile("cpu_tdp", value)
     
     def _on_cpu_temp_changed(self, value: int) -> None:
         """Handle CPU temp slider change."""
         self.ryzenadj.set_temp_limit(value)
+        self._save_to_current_profile("cpu_temp_limit", value)
     
     def _on_gpu_clock_changed(self, _: int) -> None:
         """Handle GPU clock slider change."""
@@ -432,10 +420,13 @@ class MainWindow(QMainWindow):
             max_clock = min_clock
             self.gpu_clock_max_slider.setValue(max_clock)
         self.nvidia_smi.set_clock_limits(min_clock, max_clock)
+        self._save_to_current_profile("gpu_clock_min", min_clock)
+        self._save_to_current_profile("gpu_clock_max", max_clock)
     
     def _on_gpu_temp_changed(self, value: int) -> None:
         """Handle GPU temp slider change."""
         self.nvidia_smi.set_temp_limit(value)
+        self._save_to_current_profile("gpu_temp_limit", value)
     
     def _on_kbd_brightness_changed(self, value: int) -> None:
         """Handle keyboard brightness change."""
@@ -444,11 +435,13 @@ class MainWindow(QMainWindow):
             level = led_levels[value]
             self.kbd_brightness_label.setText(level)
             self.asusctl.set_keyboard_brightness(level)
+            self._save_to_current_profile("keyboard_brightness", level)
     
     def _on_battery_limit_changed(self, value: int) -> None:
         """Handle battery charge limit change."""
         self.battery_limit_label.setText(f"{value}%")
         self.asusctl.set_battery_limit(value)
+        self._save_to_current_profile("battery_limit", value)
     
     def _on_battery_oneshot_clicked(self) -> None:
         """Handle battery oneshot button click."""
@@ -457,51 +450,59 @@ class MainWindow(QMainWindow):
             self.battery_oneshot_btn.setText("✓ One-Shot Enabled")
             self.battery_oneshot_btn.setEnabled(False)
     
-    def _on_profile_selected(self, name: str) -> None:
-        """Handle profile selection from combo box."""
-        self.config.set_current_profile(name)
     
-    def _apply_current_profile(self) -> None:
-        """Apply the currently selected profile."""
-        profile = self.config.get_current_profile()
-        
-        # Apply asusctl settings
-        if self.asusctl.is_available:
-            power_profile = profile.get("power_profile")
-            if power_profile:
-                self.asusctl.set_power_profile(power_profile)
-                if power_profile in self.profile_buttons:
-                    self._set_active_button(self.profile_buttons, power_profile)
+    def _apply_profile(self, profile_name: str) -> None:
+        """Apply all settings from a profile."""
+        profile_data = self.config.get("profiles", profile_name, default={})
         
         # Apply supergfxctl settings
         if self.supergfxctl.is_available:
-            gpu_mode = profile.get("gpu_mode")
+            gpu_mode = profile_data.get("gpu_mode")
             if gpu_mode:
                 self.supergfxctl.set_gpu_mode(gpu_mode)
                 if gpu_mode in self.gpu_buttons:
                     self._set_active_button(self.gpu_buttons, gpu_mode)
         
-        # Apply ryzenadj settings (overrides asusctl)
+        # Apply ryzenadj settings
         if self.ryzenadj.is_available:
-            if "cpu_tdp" in profile:
-                self.cpu_tdp_slider.setValue(profile["cpu_tdp"])
-                self.ryzenadj.set_power_limit(profile["cpu_tdp"])
-            if "cpu_temp_limit" in profile:
-                self.cpu_temp_slider.setValue(profile["cpu_temp_limit"])
-                self.ryzenadj.set_temp_limit(profile["cpu_temp_limit"])
+            if "cpu_tdp" in profile_data:
+                self.cpu_tdp_slider.setValue(profile_data["cpu_tdp"])
+                self.ryzenadj.set_power_limit(profile_data["cpu_tdp"])
+            if "cpu_temp_limit" in profile_data:
+                self.cpu_temp_slider.setValue(profile_data["cpu_temp_limit"])
+                self.ryzenadj.set_temp_limit(profile_data["cpu_temp_limit"])
         
-        # Apply nvidia-smi settings (overrides asusctl)
+        # Apply nvidia-smi settings
         if self.nvidia_smi.is_available:
-            if "gpu_clock_min" in profile and "gpu_clock_max" in profile:
-                self.gpu_clock_min_slider.setValue(profile["gpu_clock_min"])
-                self.gpu_clock_max_slider.setValue(profile["gpu_clock_max"])
+            if "gpu_clock_min" in profile_data and "gpu_clock_max" in profile_data:
+                self.gpu_clock_min_slider.setValue(profile_data["gpu_clock_min"])
+                self.gpu_clock_max_slider.setValue(profile_data["gpu_clock_max"])
                 self.nvidia_smi.set_clock_limits(
-                    profile["gpu_clock_min"],
-                    profile["gpu_clock_max"],
+                    profile_data["gpu_clock_min"],
+                    profile_data["gpu_clock_max"],
                 )
-            if "gpu_temp_limit" in profile:
-                self.gpu_temp_slider.setValue(profile["gpu_temp_limit"])
-                self.nvidia_smi.set_temp_limit(profile["gpu_temp_limit"])
+            if "gpu_temp_limit" in profile_data:
+                self.gpu_temp_slider.setValue(profile_data["gpu_temp_limit"])
+                self.nvidia_smi.set_temp_limit(profile_data["gpu_temp_limit"])
+        
+        # Apply battery limit
+        if self.asusctl.is_available and "battery_limit" in profile_data:
+            self.battery_limit_slider.setValue(profile_data["battery_limit"])
+            self.asusctl.set_battery_limit(profile_data["battery_limit"])
+        
+        # Apply keyboard brightness
+        if self.asusctl.is_available and "keyboard_brightness" in profile_data:
+            level = profile_data["keyboard_brightness"]
+            led_levels = ["off", "low", "med", "high"]
+            if level in led_levels:
+                self.kbd_brightness_slider.setValue(led_levels.index(level))
+                self.kbd_brightness_label.setText(level)
+                self.asusctl.set_keyboard_brightness(level)
+    
+    def _save_to_current_profile(self, key: str, value) -> None:
+        """Save a setting to the current profile."""
+        profile_name = self._get_current_profile_name()
+        self.config.set("profiles", profile_name, key, value)
     
     # type: ignore
     def closeEvent(self, event: QCloseEvent) -> None:
