@@ -302,7 +302,7 @@ class MainWindow(QMainWindow):
     
     def _create_battery_section(self) -> QGroupBox:
         """Create battery charge limit section."""
-        group = QGroupBox("🔋 Battery")
+        group = QGroupBox("Battery")
         layout = QVBoxLayout(group)
         
         # Charge limit slider

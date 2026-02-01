@@ -8,7 +8,7 @@
 - [ ] Test battery limit setting
 
 ### Missing Features
-- [ ] Battery charge limit UI control
+- [x] Battery charge limit UI control
 - [ ] Apply profile on startup (from config)
 - [ ] Save slider values to config on change
 

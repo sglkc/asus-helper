@@ -8,6 +8,7 @@ from PyQt6.QtWidgets import QApplication
 from PyQt6.QtCore import QTimer
 
 from asus_helper.config import Config
+from asus_helper.kwin import ensure_kwin_rules
 from asus_helper.logging import setup_logging, get_logger
 from asus_helper.single_instance import ensure_single_instance
 from asus_helper.bridges import (
@@ -54,6 +55,9 @@ class Application:
         self.app = QApplication(sys.argv)
         self.app.setApplicationName("ASUS Helper")
         self.app.setQuitOnLastWindowClosed(False)  # Keep running in tray
+        
+        # Ensure KWin rules are configured (Wayland window positioning)
+        ensure_kwin_rules()
         
         # Load config
         self.config = Config()
