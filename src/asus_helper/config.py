@@ -18,6 +18,10 @@ class Config:
     DEFAULT_CONFIG_FILE = "config.toml"
     
     # Default configuration values
+    # Uses actual asusctl constants:
+    # - power_profile: LowPower, Balanced, Performance
+    # - gpu_mode: Integrated, Hybrid, Dedicated
+    # - keyboard brightness: off, low, med, high
     DEFAULTS: dict[str, Any] = {
         "general": {
             "start_on_boot": False,
@@ -25,35 +29,38 @@ class Config:
         },
         "profiles": {
             "balanced": {
-                "power_profile": "balanced",
-                "gpu_mode": "hybrid",
+                "power_profile": "Balanced",
+                "gpu_mode": "Hybrid",
                 "cpu_tdp": 45,
                 "cpu_temp_limit": 85,
                 "gpu_clock_min": 300,
                 "gpu_clock_max": 1500,
                 "gpu_temp_limit": 87,
+                "battery_limit": 80,
             },
             "silent": {
-                "power_profile": "quiet",
-                "gpu_mode": "integrated",
+                "power_profile": "LowPower",
+                "gpu_mode": "Integrated",
                 "cpu_tdp": 25,
                 "cpu_temp_limit": 75,
                 "gpu_clock_min": 300,
                 "gpu_clock_max": 900,
                 "gpu_temp_limit": 80,
+                "battery_limit": 60,
             },
             "performance": {
-                "power_profile": "performance",
-                "gpu_mode": "hybrid",
+                "power_profile": "Performance",
+                "gpu_mode": "Hybrid",
                 "cpu_tdp": 65,
                 "cpu_temp_limit": 95,
                 "gpu_clock_min": 300,
                 "gpu_clock_max": 2100,
                 "gpu_temp_limit": 90,
+                "battery_limit": 100,
             },
         },
         "keyboard": {
-            "brightness": 2,
+            "brightness": "low",
             "color": "#ff0000",
             "mode": "static",
         },
