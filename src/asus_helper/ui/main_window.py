@@ -11,6 +11,8 @@ from PyQt6.QtWidgets import (
     QSlider,
     QSizePolicy,
 )
+from typing import Any, Callable
+
 from PyQt6.QtCore import Qt, pyqtSignal, QTimer
 from PyQt6.QtGui import QCloseEvent, QScreen
 
@@ -101,7 +103,7 @@ class Debouncer:
         self._timers: dict[str, QTimer] = {}
         self._pending: dict[str, tuple] = {}
     
-    def call(self, key: str, func: callable, *args, **kwargs) -> None:
+    def call(self, key: str, func: Callable[..., Any], *args: Any, **kwargs: Any) -> None:
         """Schedule a debounced function call.
         
         Args:
@@ -440,7 +442,11 @@ class MainWindow(QMainWindow):
         if self.ryzenadj.is_available:
             state = self.ryzenadj.get_current_state()
             if state.get("stapm_limit"):
-                self.cpu_tdp_slider.setValue(state["stapm_limit"])
+                self.cpu_sustained_slider.setValue(state["stapm_limit"])
+            if state.get("slow_limit"):
+                self.cpu_short_slider.setValue(state["slow_limit"])
+            if state.get("fast_limit"):
+                self.cpu_fast_slider.setValue(state["fast_limit"])
             if state.get("tctl_temp"):
                 self.cpu_temp_slider.setValue(state["tctl_temp"])
         
