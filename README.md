@@ -2,6 +2,10 @@
 
 A power management tool for ASUS laptops on Linux, inspired by G-Helper.
 
+> [!CAUTION]
+> This work is incomplete and probably won't, it may work but use at your own risk!
+> I will not be responsible for any damage to your system.
+
 ## Features
 
 - **Power Profiles**: Switch between Quiet/Balanced/Performance modes (via asusctl)
