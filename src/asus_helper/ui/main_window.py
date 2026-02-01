@@ -240,11 +240,20 @@ class MainWindow(QMainWindow):
         return group
     
     def _create_cpu_section(self) -> QGroupBox:
-        """Create CPU power control section."""
-        group = QGroupBox("CPU (ryzenadj)")
+        """Create CPU power control section.
+        
+        Uses asusctl armoury attributes for min/max limits,
+        but applies via ryzenadj for lower minimum power.
+        """
+        group = QGroupBox("⚡ CPU Power")
         layout = QVBoxLayout(group)
         
-        self.cpu_tdp_slider = SliderWithValue("Power Limit", 15, 80, "W")
+        # Get limits from asusctl armoury (min lowered by 5W)
+        limits = self.asusctl.get_cpu_power_limits()
+        min_power = limits.get("min", 15)
+        max_power = limits.get("max", 65)
+        
+        self.cpu_tdp_slider = SliderWithValue("Power Limit", min_power, max_power, "W")
         self.cpu_tdp_slider.valueChanged.connect(self._on_cpu_tdp_changed)
         layout.addWidget(self.cpu_tdp_slider)
         

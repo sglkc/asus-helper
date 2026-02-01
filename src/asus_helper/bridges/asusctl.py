@@ -315,3 +315,32 @@ class AsusctlBridge(Bridge):
             return result.returncode == 0
         except Exception:
             return False
+    
+    def get_cpu_power_limits(self) -> dict[str, int]:
+        """Get CPU power limit ranges from armoury attributes.
+        
+        Uses ppt_pl1_spl (sustained), ppt_pl2_sppt (short), ppt_pl3_fppt (fast)
+        to determine the valid ranges for CPU TDP.
+        
+        Returns:
+            Dict with min, max, current for the primary (sustained) limit,
+            with min lowered by 5W for ryzenadj flexibility.
+        """
+        result = {
+            "min": 15,  # Fallback defaults
+            "max": 65,
+            "current": 45,
+        }
+        
+        # Get ppt_pl1_spl (sustained power limit) for the primary range
+        attr = self.get_armoury_attribute("ppt_pl1_spl")
+        if attr:
+            if "min" in attr:
+                result["min"] = max(5, attr["min"] - 5)  # Lower by 5W, min 5W
+            if "max" in attr:
+                result["max"] = attr["max"]
+            if "current" in attr:
+                result["current"] = attr["current"]
+        
+        return result
+
