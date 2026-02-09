@@ -1,0 +1,8 @@
+// Allow wheel group members to run asus-helper privileged commands without password
+polkit.addRule(function(action, subject) {
+    if ((action.id == "org.asus-helper.ryzenadj" ||
+         action.id == "org.asus-helper.nvidia-smi") &&
+        subject.isInGroup("wheel")) {
+        return polkit.Result.YES;
+    }
+});
