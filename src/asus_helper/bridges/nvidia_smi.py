@@ -18,6 +18,41 @@ class NvidiaSMIBridge(Bridge):
     COMMAND = "nvidia-smi"
     REQUIRES_ROOT = True
     
+    def __init__(self) -> None:
+        super().__init__()
+        # Capability flags - set after first command attempt
+        self._temp_limit_supported: bool | None = None
+        self._power_limit_supported: bool | None = None
+    
+    @property
+    def supports_temp_limit(self) -> bool:
+        """Check if GPU supports temperature limit setting."""
+        if self._temp_limit_supported is None:
+            self._check_capabilities()
+        return self._temp_limit_supported or False
+    
+    @property
+    def supports_power_limit(self) -> bool:
+        """Check if GPU supports power limit setting."""
+        if self._power_limit_supported is None:
+            self._check_capabilities()
+        return self._power_limit_supported or False
+    
+    def _check_capabilities(self) -> None:
+        """Check what features this GPU supports by testing commands."""
+        if not self.is_available:
+            self._temp_limit_supported = False
+            self._power_limit_supported = False
+            return
+        
+        # Test temp limit support
+        result = self.run("-gtt", "85", check=False)
+        self._temp_limit_supported = "not supported" not in (result.stdout + result.stderr).lower()
+        
+        # Test power limit support  
+        result = self.run("-pl", "100", check=False)
+        self._power_limit_supported = "not supported" not in (result.stdout + result.stderr).lower()
+    
     def get_current_state(self) -> dict[str, Any]:
         """Get current GPU state."""
         state: dict[str, Any] = {

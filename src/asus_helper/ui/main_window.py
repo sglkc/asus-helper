@@ -350,9 +350,12 @@ class MainWindow(QMainWindow):
         self.gpu_clock_max_slider.valueChanged.connect(self._on_gpu_clock_changed)
         layout.addWidget(self.gpu_clock_max_slider)
         
-        self.gpu_temp_slider = SliderWithValue("Temp Limit", 60, 95, "°C")
-        self.gpu_temp_slider.valueChanged.connect(self._on_gpu_temp_changed)
-        layout.addWidget(self.gpu_temp_slider)
+        # Only show temp limit slider if GPU supports it
+        self.gpu_temp_slider: SliderWithValue | None = None
+        if self.nvidia_smi.supports_temp_limit:
+            self.gpu_temp_slider = SliderWithValue("Temp Limit", 60, 95, "°C")
+            self.gpu_temp_slider.valueChanged.connect(self._on_gpu_temp_changed)
+            layout.addWidget(self.gpu_temp_slider)
         
         return group
     
@@ -457,7 +460,8 @@ class MainWindow(QMainWindow):
             profile = self.config.get_current_profile()
             self.gpu_clock_min_slider.setValue(profile.get("gpu_clock_min", 300))
             self.gpu_clock_max_slider.setValue(profile.get("gpu_clock_max", 1500))
-            self.gpu_temp_slider.setValue(profile.get("gpu_temp_limit", 87))
+            if self.gpu_temp_slider:
+                self.gpu_temp_slider.setValue(profile.get("gpu_temp_limit", 87))
     
     def _set_active_button(self, buttons: dict[str, ModeButton], active_key: str) -> None:
         """Set one button as active (checked) in a group."""
@@ -579,7 +583,7 @@ class MainWindow(QMainWindow):
                     profile_data["gpu_clock_min"],
                     profile_data["gpu_clock_max"],
                 )
-            if "gpu_temp_limit" in profile_data:
+            if "gpu_temp_limit" in profile_data and self.gpu_temp_slider:
                 self.gpu_temp_slider.setValue(profile_data["gpu_temp_limit"])
                 self.nvidia_smi.set_temp_limit(profile_data["gpu_temp_limit"])
         
