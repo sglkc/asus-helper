@@ -536,13 +536,13 @@ class MainWindow(QMainWindow):
             level = led_levels[value]
             self.kbd_brightness_label.setText(level)
             self._debouncer.call("kbd_brightness", self.asusctl.set_keyboard_brightness, level)
-            self.config.set("hardware", "keyboard_brightness", value=level)
+            self.config.set("hardware", "keyboard_brightness", level)
     
     def _on_battery_limit_changed(self, value: int) -> None:
         """Handle battery charge limit change (global setting, not profile-specific)."""
         self.battery_limit_label.setText(f"{value}%")
         self._debouncer.call("battery_limit", self.asusctl.set_battery_limit, value)
-        self.config.set("hardware", "battery_limit", value=value)
+        self.config.set("hardware", "battery_limit", value)
     
     def _on_battery_oneshot_clicked(self) -> None:
         """Handle battery oneshot button click."""
