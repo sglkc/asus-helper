@@ -252,7 +252,7 @@ class MainWindow(QMainWindow):
         
         Also serves as the main profile selector - clicking applies all settings.
         """
-        group = QGroupBox("⚡ Profile")
+        group = QGroupBox("Profile")
         layout = QHBoxLayout(group)
         
         self.profile_buttons: dict[str, ModeButton] = {}
@@ -295,7 +295,7 @@ class MainWindow(QMainWindow):
         Uses asusctl armoury attributes for min/max limits,
         but applies via ryzenadj for lower minimum power.
         """
-        group = QGroupBox("⚡ CPU Power")
+        group = QGroupBox("CPU Power")
         layout = QVBoxLayout(group)
         
         # Get limits from asusctl armoury (min lowered by 5W)

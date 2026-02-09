@@ -17,6 +17,7 @@ class RyzenadjBridge(Bridge):
     """
     
     COMMAND = "ryzenadj"
+    REQUIRES_ROOT = True
     
     def get_current_state(self) -> dict[str, Any]:
         """Get current CPU power state.

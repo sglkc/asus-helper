@@ -1,5 +1,6 @@
 """Base class for CLI bridges."""
 
+import os
 import shutil
 import subprocess
 from abc import ABC, abstractmethod
@@ -18,9 +19,14 @@ class Bridge(ABC):
     # Override in subclasses with the CLI command name
     COMMAND: str = ""
     
+    # Set to True if this tool requires root privileges
+    REQUIRES_ROOT: bool = False
+    
     def __init__(self) -> None:
         self._available: bool | None = None
         self._log = get_logger(f"bridge.{self.COMMAND or 'base'}")
+        self._is_root = os.geteuid() == 0
+        self._pkexec_available: bool | None = None
     
     @property
     def is_available(self) -> bool:
@@ -29,6 +35,17 @@ class Bridge(ABC):
             self._available = shutil.which(self.COMMAND) is not None
             self._log.debug("Availability check: %s", "found" if self._available else "not found")
         return self._available
+    
+    @property
+    def _has_pkexec(self) -> bool:
+        """Check if pkexec is available."""
+        if self._pkexec_available is None:
+            self._pkexec_available = shutil.which("pkexec") is not None
+        return self._pkexec_available
+    
+    def _needs_privilege_escalation(self) -> bool:
+        """Check if we need to use pkexec for this bridge."""
+        return self.REQUIRES_ROOT and not self._is_root
     
     def run(self, *args: str, check: bool = True, capture: bool = True) -> subprocess.CompletedProcess:
         """Run the CLI command with given arguments.
@@ -49,8 +66,13 @@ class Bridge(ABC):
             self._log.error("Command not available: %s", self.COMMAND)
             raise RuntimeError(f"{self.COMMAND} is not available")
         
-        cmd = [self.COMMAND, *args]
-        self._log.debug("Running: %s", " ".join(cmd))
+        # Build command with optional privilege escalation
+        if self._needs_privilege_escalation() and self._has_pkexec:
+            cmd = ["pkexec", self.COMMAND, *args]
+            self._log.debug("Running (via pkexec): %s", " ".join(cmd[1:]))
+        else:
+            cmd = [self.COMMAND, *args]
+            self._log.debug("Running: %s", " ".join(cmd))
         
         result = subprocess.run(
             cmd,
@@ -60,7 +82,11 @@ class Bridge(ABC):
         )
         
         if result.returncode != 0:
-            self._log.warning("Command failed (exit %d): %s", result.returncode, result.stderr.strip() if result.stderr else "")
+            # Check for pkexec auth cancelled
+            if result.returncode == 126:
+                self._log.warning("Authentication cancelled by user")
+            else:
+                self._log.warning("Command failed (exit %d): %s", result.returncode, result.stderr.strip() if result.stderr else "")
         else:
             self._log.debug("Command succeeded: %s", result.stdout.strip()[:100] if result.stdout else "(no output)")
         
@@ -83,3 +109,4 @@ class Bridge(ABC):
             settings: Dict with settings to apply. Keys depend on the specific bridge.
         """
         ...
+

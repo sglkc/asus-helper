@@ -16,6 +16,7 @@ class NvidiaSMIBridge(Bridge):
     """
     
     COMMAND = "nvidia-smi"
+    REQUIRES_ROOT = True
     
     def get_current_state(self) -> dict[str, Any]:
         """Get current GPU state."""
