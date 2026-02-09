@@ -25,6 +25,11 @@ class Config:
             "start_on_boot": False,
             "current_profile": "Balanced",
         },
+        # Global hardware settings (not tied to profiles)
+        "hardware": {
+            "keyboard_brightness": "low",
+            "battery_limit": 80,
+        },
         "profiles": {
             "LowPower": {
                 "gpu_mode": "Integrated",
@@ -35,8 +40,6 @@ class Config:
                 "gpu_clock_min": 300,
                 "gpu_clock_max": 900,
                 "gpu_temp_limit": 80,
-                "battery_limit": 60,
-                "keyboard_brightness": "off",
             },
             "Balanced": {
                 "gpu_mode": "Hybrid",
@@ -47,8 +50,6 @@ class Config:
                 "gpu_clock_min": 300,
                 "gpu_clock_max": 1500,
                 "gpu_temp_limit": 87,
-                "battery_limit": 80,
-                "keyboard_brightness": "low",
             },
             "Performance": {
                 "gpu_mode": "Hybrid",
@@ -59,8 +60,6 @@ class Config:
                 "gpu_clock_min": 300,
                 "gpu_clock_max": 2100,
                 "gpu_temp_limit": 90,
-                "battery_limit": 100,
-                "keyboard_brightness": "med",
             },
         },
     }

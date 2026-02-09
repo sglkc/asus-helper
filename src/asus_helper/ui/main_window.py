@@ -521,19 +521,19 @@ class MainWindow(QMainWindow):
         self._save_to_current_profile("gpu_temp_limit", value)
     
     def _on_kbd_brightness_changed(self, value: int) -> None:
-        """Handle keyboard brightness change."""
+        """Handle keyboard brightness change (global setting, not profile-specific)."""
         led_levels = ["off", "low", "med", "high"]
         if 0 <= value < len(led_levels):
             level = led_levels[value]
             self.kbd_brightness_label.setText(level)
             self._debouncer.call("kbd_brightness", self.asusctl.set_keyboard_brightness, level)
-            self._save_to_current_profile("keyboard_brightness", level)
+            self.config.set("hardware", "keyboard_brightness", value=level)
     
     def _on_battery_limit_changed(self, value: int) -> None:
-        """Handle battery charge limit change."""
+        """Handle battery charge limit change (global setting, not profile-specific)."""
         self.battery_limit_label.setText(f"{value}%")
         self._debouncer.call("battery_limit", self.asusctl.set_battery_limit, value)
-        self._save_to_current_profile("battery_limit", value)
+        self.config.set("hardware", "battery_limit", value=value)
     
     def _on_battery_oneshot_clicked(self) -> None:
         """Handle battery oneshot button click."""
@@ -583,19 +583,8 @@ class MainWindow(QMainWindow):
                 self.gpu_temp_slider.setValue(profile_data["gpu_temp_limit"])
                 self.nvidia_smi.set_temp_limit(profile_data["gpu_temp_limit"])
         
-        # Apply battery limit
-        if self.asusctl.is_available and "battery_limit" in profile_data:
-            self.battery_limit_slider.setValue(profile_data["battery_limit"])
-            self.asusctl.set_battery_limit(profile_data["battery_limit"])
-        
-        # Apply keyboard brightness
-        if self.asusctl.is_available and "keyboard_brightness" in profile_data:
-            level = profile_data["keyboard_brightness"]
-            led_levels = ["off", "low", "med", "high"]
-            if level in led_levels:
-                self.kbd_brightness_slider.setValue(led_levels.index(level))
-                self.kbd_brightness_label.setText(level)
-                self.asusctl.set_keyboard_brightness(level)
+        # Note: keyboard_brightness and battery_limit are global settings
+        # They are NOT applied when switching profiles
     
     def _save_to_current_profile(self, key: str, value) -> None:
         """Save a setting to the current profile."""
