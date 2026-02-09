@@ -13,10 +13,10 @@ log = get_logger("config")
 
 class Config:
     """Manages application configuration stored in TOML format."""
-    
+
     DEFAULT_CONFIG_DIR = Path.home() / ".config" / "asus-helper"
     DEFAULT_CONFIG_FILE = "config.toml"
-    
+
     # Default configuration values
     # Profile names match asusctl power profiles: LowPower, Balanced, Performance
     # Displayed as: Silent, Balanced, Turbo
@@ -63,10 +63,10 @@ class Config:
             },
         },
     }
-    
+
     def __init__(self, config_dir: Path | None = None) -> None:
         """Initialize config manager.
-        
+
         Args:
             config_dir: Override config directory (for testing).
         """
@@ -74,7 +74,7 @@ class Config:
         self.config_file = self.config_dir / self.DEFAULT_CONFIG_FILE
         self._data: dict[str, Any] = {}
         self._load()
-    
+
     def _load(self) -> None:
         """Load config from file, creating defaults if needed."""
         if self.config_file.exists():
@@ -86,17 +86,19 @@ class Config:
                 log.warning("Could not load config: %s. Using defaults.", e)
                 self._data = self._deep_copy(self.DEFAULTS)
         else:
-            log.info("Config file not found, creating with defaults: %s", self.config_file)
+            log.info(
+                "Config file not found, creating with defaults: %s", self.config_file
+            )
             self._data = self._deep_copy(self.DEFAULTS)
             self._save()
-    
+
     def _save(self) -> None:
         """Save current config to file."""
         self.config_dir.mkdir(parents=True, exist_ok=True)
         with open(self.config_file, "wb") as f:
             tomli_w.dump(self._data, f)
         log.debug("Saved config to %s", self.config_file)
-    
+
     def _deep_copy(self, d: dict) -> dict:
         """Create a deep copy of a nested dict."""
         result = {}
@@ -106,10 +108,10 @@ class Config:
             else:
                 result[k] = v
         return result
-    
+
     def get(self, *keys: str, default: Any = None) -> Any:
         """Get a config value by nested keys.
-        
+
         Example: config.get("profiles", "balanced", "cpu_tdp")
         """
         value = self._data
@@ -119,48 +121,50 @@ class Config:
             else:
                 return default
         return value
-    
+
     def set(self, *keys_and_value: Any) -> None:
         """Set a config value by nested keys.
-        
+
         Last argument is the value, all others are keys.
         Example: config.set("profiles", "balanced", "cpu_tdp", 50)
         """
         if len(keys_and_value) < 2:
             raise ValueError("Need at least one key and a value")
-        
+
         *keys, value = keys_and_value
-        
+
         # Navigate to parent
         parent = self._data
         for key in keys[:-1]:
             if key not in parent:
                 parent[key] = {}
             parent = parent[key]
-        
+
         # Set value
         parent[keys[-1]] = value
         self._save()
-    
+
     def get_current_profile(self) -> dict[str, Any]:
         """Get the currently active profile settings."""
         profile_name = self.get("general", "current_profile", default="Balanced")
-        return self.get("profiles", profile_name, default=self.DEFAULTS["profiles"]["Balanced"])
-    
+        return self.get(
+            "profiles", profile_name, default=self.DEFAULTS["profiles"]["Balanced"]
+        )
+
     def set_current_profile(self, name: str) -> None:
         """Set the active profile by name."""
         self.set("general", "current_profile", name)
-    
+
     def get_profile_names(self) -> list[str]:
         """Get list of available profile names."""
         profiles = self.get("profiles", default={})
         return list(profiles.keys())
-    
+
     @property
     def start_on_boot(self) -> bool:
         """Whether to start on boot."""
         return self.get("general", "start_on_boot", default=False)
-    
+
     @start_on_boot.setter
     def start_on_boot(self, value: bool) -> None:
         self.set("general", "start_on_boot", value)

@@ -37,16 +37,16 @@ def is_kde_plasma() -> bool:
 
 def get_kwin_config(key: str) -> str | None:
     """Read a KWin rule config value.
-    
+
     Args:
         key: Config key to read.
-    
+
     Returns:
         Value if exists, None otherwise.
     """
     if not is_kde_plasma():
         return None
-    
+
     try:
         result = subprocess.run(
             ["kreadconfig6", "--file", "kwinrulesrc", "--group", GROUP, "--key", key],
@@ -58,23 +58,32 @@ def get_kwin_config(key: str) -> str | None:
             return result.stdout.strip()
     except Exception as e:
         log.debug("Failed to read kwin config %s: %s", key, e)
-    
+
     return None
 
 
 def set_kwin_config(key: str, value: str) -> bool:
     """Set a KWin rule config value.
-    
+
     Args:
         key: Config key.
         value: Value to set.
-    
+
     Returns:
         True if successful.
     """
     try:
         result = subprocess.run(
-            ["kwriteconfig6", "--file", "kwinrulesrc", "--group", GROUP, "--key", key, value],
+            [
+                "kwriteconfig6",
+                "--file",
+                "kwinrulesrc",
+                "--group",
+                GROUP,
+                "--key",
+                key,
+                value,
+            ],
             capture_output=True,
             text=True,
             check=False,
@@ -87,7 +96,7 @@ def set_kwin_config(key: str, value: str) -> bool:
 
 def reconfigure_kwin() -> bool:
     """Tell KWin to reload its configuration.
-    
+
     Returns:
         True if successful.
     """
@@ -111,45 +120,71 @@ def reconfigure_kwin() -> bool:
 
 def register_rule() -> bool:
     """Register the rule in the [General] section of kwinrulesrc.
-    
+
     KWin requires rules to be listed in [General] to be active.
-    
+
     Returns:
         True if successful.
     """
     try:
         # Read current rules list
         result = subprocess.run(
-            ["kreadconfig6", "--file", "kwinrulesrc", "--group", "General", "--key", "rules"],
+            [
+                "kreadconfig6",
+                "--file",
+                "kwinrulesrc",
+                "--group",
+                "General",
+                "--key",
+                "rules",
+            ],
             capture_output=True,
             text=True,
             check=False,
         )
         current_rules = result.stdout.strip() if result.returncode == 0 else ""
-        
+
         # Check if our rule is already registered
         rules_list = [r.strip() for r in current_rules.split(",") if r.strip()]
         if GROUP in rules_list:
             log.debug("Rule already registered in [General]")
             return True
-        
+
         # Add our rule to the list
         rules_list.append(GROUP)
         new_rules = ",".join(rules_list)
         count = len(rules_list)
-        
+
         # Write updated rules list
         subprocess.run(
-            ["kwriteconfig6", "--file", "kwinrulesrc", "--group", "General", "--key", "count", str(count)],
+            [
+                "kwriteconfig6",
+                "--file",
+                "kwinrulesrc",
+                "--group",
+                "General",
+                "--key",
+                "count",
+                str(count),
+            ],
             capture_output=True,
             check=False,
         )
         subprocess.run(
-            ["kwriteconfig6", "--file", "kwinrulesrc", "--group", "General", "--key", "rules", new_rules],
+            [
+                "kwriteconfig6",
+                "--file",
+                "kwinrulesrc",
+                "--group",
+                "General",
+                "--key",
+                "rules",
+                new_rules,
+            ],
             capture_output=True,
             check=False,
         )
-        
+
         log.info("Registered rule in [General] (count=%d, rules=%s)", count, new_rules)
         return True
     except Exception as e:
@@ -159,35 +194,35 @@ def register_rule() -> bool:
 
 def ensure_kwin_rules() -> bool:
     """Ensure KWin rules are configured correctly.
-    
+
     Checks if the config exists with the expected window size.
     If not matching, updates all rules and reconfigures KWin.
-    
+
     Returns:
         True if rules were updated, False if already up-to-date.
     """
     if not is_kde_plasma():
         log.debug("Not on KDE Plasma, skipping KWin rules")
         return False
-    
+
     # Check if config exists and has correct size
     config_exists = get_kwin_config("title")
-    
+
     if config_exists:
         log.debug("KWin rules already configured correctly")
         return False
-    
+
     log.info("Updating KWin rules")
-    
+
     # Apply all rules
     success = True
     for key, value in KWIN_RULES.items():
         if not set_kwin_config(key, value):
             success = False
-    
+
     # Register the rule in [General] section
     register_rule()
-    
+
     if success:
         # Reconfigure KWin to apply changes
         reconfigure_kwin()
@@ -196,4 +231,3 @@ def ensure_kwin_rules() -> bool:
     else:
         log.warning("Some KWin rules failed to apply")
         return False
-
