@@ -53,6 +53,38 @@ class NvidiaSMIBridge(Bridge):
         result = self.run("-pl", "100", check=False)
         self._power_limit_supported = "not supported" not in (result.stdout + result.stderr).lower()
     
+    def get_supported_clocks(self) -> dict[str, int]:
+        """Get supported GPU clock range.
+        
+        Returns:
+            Dict with 'min' and 'max' clock speeds in MHz.
+        """
+        defaults = {"min": 300, "max": 2100}
+        
+        if not self.is_available:
+            return defaults
+        
+        try:
+            result = self.run(
+                "--query-supported-clocks=gr",
+                "--format=csv,noheader,nounits",
+                check=False,
+            )
+            if result.returncode == 0 and result.stdout.strip():
+                # Parse all clock values and find min/max
+                clocks = []
+                for line in result.stdout.strip().split("\n"):
+                    line = line.strip()
+                    if line.isdigit():
+                        clocks.append(int(line))
+                
+                if clocks:
+                    return {"min": min(clocks), "max": max(clocks)}
+        except Exception:
+            pass
+        
+        return defaults
+    
     def get_current_state(self) -> dict[str, Any]:
         """Get current GPU state."""
         state: dict[str, Any] = {

@@ -342,11 +342,16 @@ class MainWindow(QMainWindow):
         if state.get("gpu_name"):
             layout.addWidget(QLabel(f"<i>{state['gpu_name']}</i>"))
         
-        self.gpu_clock_min_slider = SliderWithValue("Min Clock", 200, 1500, " MHz")
+        # Get supported clock range from nvidia-smi
+        clocks = self.nvidia_smi.get_supported_clocks()
+        clock_min = clocks["min"]
+        clock_max = clocks["max"]
+        
+        self.gpu_clock_min_slider = SliderWithValue("Min Clock", clock_min, clock_max, " MHz")
         self.gpu_clock_min_slider.valueChanged.connect(self._on_gpu_clock_changed)
         layout.addWidget(self.gpu_clock_min_slider)
         
-        self.gpu_clock_max_slider = SliderWithValue("Max Clock", 500, 2500, " MHz")
+        self.gpu_clock_max_slider = SliderWithValue("Max Clock", clock_min, clock_max, " MHz")
         self.gpu_clock_max_slider.valueChanged.connect(self._on_gpu_clock_changed)
         layout.addWidget(self.gpu_clock_max_slider)
         
